@@ -1,0 +1,19 @@
+{
+  "dataset_id": "erm2-nwe9",
+  "source_page": "https://data.cityofnewyork.us/Social-Services/311-Service-Requests-from-2020-to-Present/erm2-nwe9",
+  "query_url": "https://data.cityofnewyork.us/resource/erm2-nwe9.csv?%24select=unique_key%2Ccreated_date%2Cclosed_date%2Ccomplaint_type%2Cstatus%2Cborough%2Clatitude%2Clongitude&%24where=created_date+%3E%3D+%272026-10-01T00%3A00%3A00%27+AND+created_date+%3C+%272026-11-01T00%3A00%3A00%27&%24order=created_date+ASC%2C+unique_key+ASC&%24limit=10000",
+  "query_parameters": {
+    "$select": "unique_key,created_date,closed_date,complaint_type,status,borough,latitude,longitude",
+    "$where": "created_date >= '2026-10-01T00:00:00' AND created_date < '2026-11-01T00:00:00'",
+    "$order": "created_date ASC, unique_key ASC",
+    "$limit": "10000"
+  },
+  "downloaded_at_utc": "2026-11-10T04:15:35.276973+00:00",
+  "row_count": 10000,
+  "unique_ids": 10000,
+  "valid_coordinate_rows": 9818,
+  "min_created_date": "2026-10-01T00:00:21.000",
+  "max_created_date": "2026-10-01T20:07:01.000",
+  "bytes": 1398190,
+  "sampling": "First 10000 rows in October 2026, ordered by created_date and unique_key. Not random or complete monthly data. For field inspection and map prototyping, not full-period counts or demand model training."
+}
