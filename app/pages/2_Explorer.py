@@ -15,6 +15,11 @@ choice = st.selectbox("Select a borough", boroughs)
 if choice != "All":
     df = df[df["borough"] == choice]
 
+complaint_types = ["All"] + sorted(df["complaint_type"].dropna().unique()) #Picking up according to complaint type. 
+selected_type = st.selectbox("Select a complaint type", complaint_types)
+if selected_type != "All":
+    df = df[df["complaint_type"] == selected_type]
+
 st.write("Points on the map:", len(df))
 
 fig = px.scatter_map(df, lat="latitude", lon="longitude", color="borough",
