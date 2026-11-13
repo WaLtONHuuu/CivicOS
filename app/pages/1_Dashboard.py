@@ -2,8 +2,9 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
+import db
+
 st.title("Statistics")
-st.caption("10,000 sample rows from one partial day (2026-10-01). Good for a demo, not for real conclusions.")
 
 # line color
 BOROUGH_COLORS = {
@@ -17,40 +18,38 @@ BOROUGH_COLORS = {
 }
 MIN_CLOSED = 20  # groups with fewer closed requests are too small to compare
 
-# Load the raw data
-df = pd.read_csv("data/sample/nyc311_2026-10_first10000.csv")
-df["hour"] = pd.to_datetime(df["created_date"]).dt.hour  # 0-23, used by most charts below
-created = pd.to_datetime(df["created_date"])
-closed_at = pd.to_datetime(df["closed_date"])
-df["hours"] = (closed_at - created).dt.total_seconds() / 3600  # used for the time-to-close chart; negative values are invalid and will be dropped
+try:
+    baseline = db.get_dashboard_baseline()
+except FileNotFoundError as error:
+    st.error(str(error))
+    st.stop()
 
-last_hour = df["hour"].max()  # The sample stops in the middle of its last hour. Hourly charts only use complete hours.
+all_total = baseline["total"]
+if all_total == 0:
+    st.info("The database has no requests yet.")
+    st.stop()
 
-all_total = len(df)#Numbers for the whole cith, used to compare with the filtered numbers
-all_rate = (df["status"] == "Closed").sum() / all_total * 100
-all_closed_df = df[(df["status"] == "Closed") & (df["hours"] >= 0)]
-all_median = all_closed_df["hours"].median()
+all_rate = baseline["rate"]
+all_median = baseline["median"]
+first_created = pd.Timestamp(baseline["first_created"])
+last_created = pd.Timestamp(baseline["last_created"])
+st.caption(
+    f"This database covers {all_total:,} requests from {first_created:%Y-%m-%d %H:%M} "
+    f"to {last_created:%Y-%m-%d %H:%M} (New York time)."
+)
 
-st.sidebar.header("Filters")#Filter the data by different labels.
-
-boroughs = sorted(df["borough"].dropna().unique())
+st.sidebar.header("Filters")
+boroughs = db.get_boroughs()
 picked_boroughs = st.sidebar.multiselect("Boroughs", boroughs, default=boroughs)
-df = df[df["borough"].isin(picked_boroughs)]
 
-statuses = sorted(df["status"].dropna().unique())
+statuses = db.get_statuses(picked_boroughs)
 picked_statuses = st.sidebar.multiselect("Status", statuses, default=statuses)
-df = df[df["status"].isin(picked_statuses)]
 
 start_hour, end_hour = st.sidebar.slider("Hour of the day", 0, 23, (0, 23))
-df = df[(df["hour"] >= start_hour) & (df["hour"] <= end_hour)]
+complaint_types = db.get_complaint_types(picked_boroughs, picked_statuses, start_hour, end_hour)
+complaint_type = st.sidebar.selectbox("Complaint type", ["All"] + complaint_types)
 
-complaint_types = ["All"] + sorted(df["complaint_type"].dropna().unique())
-complaint_type = st.sidebar.selectbox("Complaint type", complaint_types)
-if complaint_type != "All":
-    df = df[df["complaint_type"] == complaint_type]
-
-
-
+df = db.get_dashboard_requests(picked_boroughs, picked_statuses, start_hour, end_hour, complaint_type)
 if len(df) == 0:# stop here if nothing is left after filtering
     st.warning("No requests match these filters. Try changing them in the sidebar.")
     st.stop()
@@ -88,9 +87,13 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
 
 
 with tab1:# Line chart
-    hourly = df[df["hour"] < last_hour].groupby(["hour", "borough"]).size().reset_index(name="requests")
+    hourly_rows = df
+    if first_created.date() == last_created.date() and last_created.hour < 23:
+        # 单日样本的最后一个小时只收录了一部分，它仍然计入总数和明细。
+        hourly_rows = df[df["hour"] < last_created.hour]
+    hourly = hourly_rows.groupby(["hour", "borough"]).size().reset_index(name="requests")
     if len(hourly) == 0:
-        st.info("No complete hours in this time range. The sample stops at 20:07.")
+        st.info(f"No complete hours in this time range. The last recorded request is at {last_created:%H:%M}.")
     else:# Add line for whole city
         city = hourly.groupby("hour")["requests"].sum().reset_index()
         city["borough"] = "New York total"
