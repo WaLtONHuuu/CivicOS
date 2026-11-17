@@ -1,5 +1,10 @@
 import streamlit as st
 
+from ui_helpers import show_data_info
+
+
 st.title("CivicOS")
-st.write("A city service analytics platform built on NYC 311 open data.")
-st.info("The Dashboard and Map Explorer pages are ready. They use 10,000 sample rows from data/sample.")
+st.write("Explore NYC 311 requests by date, borough, and complaint type.")
+show_data_info()
+st.page_link("pages/1_Dashboard.py", label="Open Dashboard")
+st.page_link("pages/2_Explorer.py", label="Open Map Explorer")
